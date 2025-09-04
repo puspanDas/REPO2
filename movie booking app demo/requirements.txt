@@ -1,0 +1,7 @@
+streamlit
+requests
+flask
+flask-cors
+redis
+reportlab
+qrcode[pil]
