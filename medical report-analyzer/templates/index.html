@@ -194,8 +194,30 @@
                 </div>
 
                 <div class="analysis-card">
+                    <h5><i class="fas fa-robot"></i> ML Predictions</h5>
+                    <div id="mlPredictions"></div>
+                </div>
+
+                <div class="analysis-card">
                     <h5><i class="fas fa-info-circle"></i> Summary</h5>
                     <div id="summary"></div>
+                </div>
+
+                <!-- Training Section -->
+                <div class="analysis-card">
+                    <h5><i class="fas fa-brain"></i> Train Models</h5>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <input type="number" id="riskScore" class="form-control" placeholder="Risk Score (0-10)" min="0" max="10" step="0.1">
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" id="correctDiagnosis" class="form-control" placeholder="Correct Diagnosis">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-success" onclick="trainModel()">Train Model</button>
+                        </div>
+                    </div>
+                    <div id="trainingStats" class="mt-2"></div>
                 </div>
             </div>
         </div>
@@ -375,6 +397,13 @@
                 recommendations.innerHTML = '<p class="text-muted">No recommendations found</p>';
             }
 
+            // ML Predictions
+            const mlPredictions = document.getElementById('mlPredictions');
+            mlPredictions.innerHTML = `
+                <div class="vital-sign"><strong>Predicted Risk Score:</strong> ${analysis.ml_predictions.predicted_risk_score.toFixed(2)}</div>
+                <div class="vital-sign"><strong>Predicted Diagnosis:</strong> ${analysis.ml_predictions.predicted_diagnosis}</div>
+            `;
+
             // Summary
             const summary = document.getElementById('summary');
             summary.innerHTML = `
@@ -384,7 +413,76 @@
             `;
 
             analysisSection.style.display = 'block';
+            loadModelStats();
         }
+
+        let currentAnalysisText = '';
+
+        function trainModel() {
+            const riskScore = document.getElementById('riskScore').value;
+            const diagnosis = document.getElementById('correctDiagnosis').value;
+            
+            if (!currentAnalysisText || !riskScore || !diagnosis) {
+                alert('Please analyze a report first and provide risk score and diagnosis');
+                return;
+            }
+
+            fetch('/train-model', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    text: currentAnalysisText,
+                    risk_score: parseFloat(riskScore),
+                    diagnosis: diagnosis
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Model trained successfully!');
+                    document.getElementById('riskScore').value = '';
+                    document.getElementById('correctDiagnosis').value = '';
+                    loadModelStats();
+                } else {
+                    alert('Training failed: ' + data.error);
+                }
+            });
+        }
+
+        function loadModelStats() {
+            fetch('/model-stats')
+            .then(response => response.json())
+            .then(stats => {
+                document.getElementById('trainingStats').innerHTML = `
+                    <small class="text-muted">
+                        Training samples: ${stats.total_samples} | 
+                        Unique diagnoses: ${stats.unique_diagnoses} | 
+                        Avg risk score: ${stats.avg_risk_score.toFixed(2)}
+                    </small>
+                `;
+            });
+        }
+
+        // Store analysis text for training
+        const originalAnalyzeText = analyzeText;
+        analyzeText = function() {
+            const text = document.getElementById('textInput').value;
+            currentAnalysisText = text;
+            originalAnalyzeText();
+        };
+
+        const originalHandleFileUpload = handleFileUpload;
+        handleFileUpload = function(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentAnalysisText = e.target.result;
+            };
+            reader.readAsText(file);
+            originalHandleFileUpload(file);
+        };
+
+        // Load stats on page load
+        loadModelStats();
     </script>
 </body>
 </html>

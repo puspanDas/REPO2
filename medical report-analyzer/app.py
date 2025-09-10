@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 import re
 from datetime import datetime
 import json
+from models import MedicalMLModels
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -13,6 +14,9 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+# Initialize ML models
+ml_models = MedicalMLModels()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc'}
 
@@ -47,7 +51,11 @@ def analyze_medical_report(text):
         'lab_results': extract_lab_results(text),
         'recommendations': extract_recommendations(text),
         'risk_factors': identify_risk_factors(text),
-        'summary': generate_summary(text)
+        'summary': generate_summary(text),
+        'ml_predictions': {
+            'predicted_risk_score': ml_models.predict_risk_score(text),
+            'predicted_diagnosis': ml_models.predict_diagnosis(text)
+        }
     }
     return analysis
 
@@ -239,6 +247,28 @@ def analyze_text():
         'success': True,
         'analysis': analysis
     })
+
+@app.route('/train-model', methods=['POST'])
+def train_model():
+    data = request.get_json()
+    text = data.get('text', '')
+    risk_score = data.get('risk_score', 0)
+    diagnosis = data.get('diagnosis', '')
+    
+    if not text or not diagnosis:
+        return jsonify({'error': 'Text and diagnosis required'})
+    
+    ml_models.add_training_data(text, risk_score, diagnosis)
+    success = ml_models.train_models()
+    
+    return jsonify({
+        'success': success,
+        'stats': ml_models.get_training_stats()
+    })
+
+@app.route('/model-stats', methods=['GET'])
+def model_stats():
+    return jsonify(ml_models.get_training_stats())
 
 if __name__ == '__main__':
     app.run(debug=True)
