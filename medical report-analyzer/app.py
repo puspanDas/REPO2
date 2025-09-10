@@ -8,6 +8,7 @@ from datetime import datetime
 import json
 from models import MedicalMLModels
 from robust_ml import RobustMLSystem
+from image_processor import ImageProcessor
 import uuid
 
 app = Flask(__name__)
@@ -20,8 +21,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize ML models
 ml_models = MedicalMLModels()
 robust_ml = RobustMLSystem()
+image_processor = ImageProcessor()
 
-ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc'}
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc', 'jpg', 'jpeg', 'png', 'bmp', 'tiff', 'gif'}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -218,6 +220,8 @@ def upload_file():
                 text = extract_text_from_docx(file_path)
             elif filename.lower().endswith('.txt'):
                 text = extract_text_from_txt(file_path)
+            elif image_processor.is_image_file(filename):
+                text = image_processor.extract_text_from_image(file_path)
             else:
                 return jsonify({'error': 'Unsupported file type'})
             
