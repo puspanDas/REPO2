@@ -1,0 +1,25 @@
+[NEAT]
+fitness_criterion     = max
+fitness_threshold     = 5000
+pop_size              = 50
+reset_on_extinction   = False
+
+[DefaultGenome]
+num_inputs        = 5
+num_outputs       = 1
+num_hidden        = 0
+initial_connection = full
+feed_forward      = True
+# ... other genome parameters ...
+
+[DefaultSpeciesSet]
+compatibility_threshold = 3.0
+
+[DefaultStagnation]
+species_fitness_func = max
+max_stagnation       = 15
+species_elitism      = 2
+
+[DefaultReproduction]
+elitism            = 2
+survival_threshold = 0.2

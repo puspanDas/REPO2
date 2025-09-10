@@ -1,0 +1,76 @@
+MEDICAL REPORT
+
+Patient Name: Sarah Johnson
+Age: 42
+Gender: Female
+Date of Birth: 1981-03-15
+Medical Record Number: MR-2024-001
+
+VITAL SIGNS:
+BP: 135/85 mmHg
+HR: 78 bpm
+Temperature: 99.2°F
+Respiratory Rate: 16/min
+Weight: 165 lbs
+Height: 5'6"
+
+CHIEF COMPLAINT:
+Patient presents with chest pain and shortness of breath for the past 2 days.
+
+MEDICAL HISTORY:
+- Hypertension (diagnosed 2019)
+- Type 2 Diabetes (diagnosed 2020)
+- Family history of heart disease
+
+CURRENT MEDICATIONS:
+- Lisinopril 10mg daily
+- Metformin 500mg twice daily
+- Aspirin 81mg daily
+
+PHYSICAL EXAMINATION:
+General appearance: Alert and oriented, mild distress
+Cardiovascular: Regular rate and rhythm, no murmurs
+Respiratory: Clear to auscultation bilaterally
+Abdomen: Soft, non-tender
+
+LABORATORY RESULTS:
+Glucose: 145 mg/dL (elevated)
+Hemoglobin: 12.8 g/dL
+White Blood Cells: 7,200/μL
+Creatinine: 1.1 mg/dL
+Total Cholesterol: 220 mg/dL (elevated)
+LDL: 140 mg/dL (elevated)
+HDL: 45 mg/dL (low)
+Triglycerides: 180 mg/dL
+
+DIAGNOSTIC TESTS:
+ECG: Normal sinus rhythm
+Chest X-ray: Clear lung fields, normal heart size
+
+ASSESSMENT AND PLAN:
+Primary Diagnosis: Chest pain, likely musculoskeletal
+Secondary Diagnosis: Poorly controlled diabetes mellitus
+Hypertension - well controlled
+
+RECOMMENDATIONS:
+1. Continue current medications
+2. Follow up with primary care physician in 2 weeks
+3. Dietary consultation for diabetes management
+4. Exercise stress test if symptoms persist
+5. Monitor blood pressure at home
+6. Return to ED if chest pain worsens
+
+RISK FACTORS IDENTIFIED:
+- Diabetes mellitus
+- Hypertension
+- Elevated cholesterol
+- Family history of heart disease
+- Obesity (BMI 26.6)
+
+FOLLOW-UP:
+Primary care appointment scheduled for 2 weeks
+Cardiology consultation if symptoms persist
+
+Provider: Dr. Michael Chen, MD
+Date: 2024-01-15
+Signature: [Electronic Signature]
