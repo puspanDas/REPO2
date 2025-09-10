@@ -7,6 +7,8 @@ import re
 from datetime import datetime
 import json
 from models import MedicalMLModels
+from robust_ml import RobustMLSystem
+import uuid
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -17,6 +19,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize ML models
 ml_models = MedicalMLModels()
+robust_ml = RobustMLSystem()
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx', 'doc'}
 
@@ -55,7 +58,8 @@ def analyze_medical_report(text):
         'ml_predictions': {
             'predicted_risk_score': ml_models.predict_risk_score(text),
             'predicted_diagnosis': ml_models.predict_diagnosis(text)
-        }
+        },
+        'robust_analysis': robust_ml.predict_comprehensive(robust_ml.extract_comprehensive_features(text), text)
     }
     return analysis
 
@@ -217,8 +221,13 @@ def upload_file():
             else:
                 return jsonify({'error': 'Unsupported file type'})
             
+            # Store data and analyze
+            user_id = request.remote_addr  # Simple user identification
+            robust_result = robust_ml.store_and_analyze(user_id, 'file_upload', text, file_path=filename)
+            
             # Analyze the medical report
             analysis = analyze_medical_report(text)
+            analysis['robust_analysis'] = robust_result['analysis']
             
             # Clean up uploaded file
             os.remove(file_path)
@@ -242,7 +251,13 @@ def analyze_text():
     if not text:
         return jsonify({'error': 'No text provided'})
     
+    # Store and analyze with robust ML
+    user_id = request.remote_addr
+    robust_result = robust_ml.store_and_analyze(user_id, 'text_input', text)
+    
     analysis = analyze_medical_report(text)
+    analysis['robust_analysis'] = robust_result['analysis']
+    
     return jsonify({
         'success': True,
         'analysis': analysis
@@ -269,6 +284,132 @@ def train_model():
 @app.route('/model-stats', methods=['GET'])
 def model_stats():
     return jsonify(ml_models.get_training_stats())
+
+@app.route('/calculate-health-metrics', methods=['POST'])
+def calculate_health_metrics():
+    data = request.get_json()
+    height = float(data.get('height', 0))  # in cm
+    weight = float(data.get('weight', 0))  # in kg
+    systolic = int(data.get('systolic', 0))
+    diastolic = int(data.get('diastolic', 0))
+    blood_sugar = float(data.get('blood_sugar', 0))  # mg/dL
+    
+    # Store health metrics
+    user_id = request.remote_addr
+    health_metrics = {
+        'height': height, 'weight': weight, 'systolic': systolic,
+        'diastolic': diastolic, 'blood_sugar': blood_sugar
+    }
+    robust_result = robust_ml.store_and_analyze(user_id, 'health_metrics', '', health_metrics)
+    
+    # Calculate BMI
+    height_m = height / 100
+    bmi = weight / (height_m ** 2)
+    
+    # BMI Categories
+    if bmi < 18.5:
+        bmi_category = "Underweight"
+        bmi_risk = "Low"
+    elif bmi < 25:
+        bmi_category = "Normal"
+        bmi_risk = "Low"
+    elif bmi < 30:
+        bmi_category = "Overweight"
+        bmi_risk = "Medium"
+    else:
+        bmi_category = "Obese"
+        bmi_risk = "High"
+    
+    # Blood Pressure Risk
+    if systolic < 120 and diastolic < 80:
+        bp_category = "Normal"
+        bp_risk = "Low"
+    elif systolic < 130 and diastolic < 80:
+        bp_category = "Elevated"
+        bp_risk = "Low"
+    elif systolic < 140 or diastolic < 90:
+        bp_category = "Stage 1 Hypertension"
+        bp_risk = "Medium"
+    else:
+        bp_category = "Stage 2 Hypertension"
+        bp_risk = "High"
+    
+    # Blood Sugar Risk
+    if blood_sugar < 100:
+        bs_category = "Normal"
+        bs_risk = "Low"
+    elif blood_sugar < 126:
+        bs_category = "Prediabetes"
+        bs_risk = "Medium"
+    else:
+        bs_category = "Diabetes"
+        bs_risk = "High"
+    
+    # Overall Risk Score (0-10)
+    risk_scores = {"Low": 1, "Medium": 5, "High": 9}
+    overall_risk = (risk_scores[bmi_risk] + risk_scores[bp_risk] + risk_scores[bs_risk]) / 3
+    
+    result = {
+        'bmi': round(bmi, 1),
+        'bmi_category': bmi_category,
+        'bmi_risk': bmi_risk,
+        'bp_category': bp_category,
+        'bp_risk': bp_risk,
+        'bs_category': bs_category,
+        'bs_risk': bs_risk,
+        'overall_risk_score': round(overall_risk, 1),
+        'recommendations': get_health_recommendations(bmi_risk, bp_risk, bs_risk),
+        'robust_analysis': robust_result['analysis']
+    }
+    
+    return jsonify(result)
+
+@app.route('/train-robust-model', methods=['POST'])
+def train_robust_model():
+    data = request.get_json()
+    user_id = request.remote_addr
+    
+    # Manual training data
+    text = data.get('text', '')
+    risk_score = float(data.get('risk_score', 0))
+    diagnosis = data.get('diagnosis', '')
+    
+    # Store as training data
+    features = robust_ml.extract_comprehensive_features(text)
+    data_id = robust_ml.data_manager.store_user_data(
+        user_id, 'manual_training', text, features
+    )
+    
+    # Store manual labels
+    robust_ml.data_manager.store_analysis_result(
+        data_id, 'manual_training', 
+        {'risk_score': risk_score, 'diagnosis': diagnosis}
+    )
+    
+    # Retrain models
+    success = robust_ml.train_models()
+    
+    return jsonify({
+        'success': success,
+        'message': 'Model training completed' if success else 'Need more training data'
+    })
+
+@app.route('/user-analytics/<user_id>', methods=['GET'])
+def get_user_analytics(user_id):
+    analytics = robust_ml.get_user_analytics(user_id)
+    return jsonify(analytics)
+
+def get_health_recommendations(bmi_risk, bp_risk, bs_risk):
+    recommendations = []
+    if bmi_risk == "High":
+        recommendations.append("Consider weight management program")
+    if bp_risk in ["Medium", "High"]:
+        recommendations.append("Monitor blood pressure regularly")
+    if bs_risk in ["Medium", "High"]:
+        recommendations.append("Consult doctor about blood sugar levels")
+    if not recommendations:
+        recommendations.append("Maintain current healthy lifestyle")
+    return recommendations
 
 if __name__ == '__main__':
     app.run(debug=True)
